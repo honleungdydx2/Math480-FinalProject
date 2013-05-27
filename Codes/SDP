@@ -1,15 +1,21 @@
+%python
+
 """
-Given n points in R2, (a1,b1),...(an,bn).
+Given m points in R2, (a1,b1),...(am,bm).
 Input:
-    a = [a1,b1,...,an,bn]
-    eta = [eta_1,...,eta_n] the weight vector
+    b = [[a1,b1],...,[am,bm]]
+    eta = [eta_1,...,eta_m] the weight vector
 """
 
 import math
 from cvxopt import matrix, solvers
 
-def SDPsolve(a,eta):
-    n = len(a)/2
+def SDPsolve(b,eta):
+    a = []
+    m = len(b)
+    for i in range(0,m):
+        a.append(b[i][0])
+        a.append(b[i][1])
     eta.insert(0,0.)
     eta.insert(0,0.)
     eta = matrix(eta)
@@ -17,15 +23,15 @@ def SDPsolve(a,eta):
         [0.,-1.,-1.,0.],
         [-1.,0.,0.,-1.],
         [0.,0.,0.,0.]]
-    for i in range(1,n-1):
+    for i in range(1,m-1):
         L.append([0.,0.,0.,0.])
     G = [matrix(L)]
-    for j in range(2,n+1):
+    for j in range(2,m+1):
         L[j], L[1+j] = L[1+j], L[j]
         G += [matrix(L)]
     h = [matrix([[-a[0],-a[1]],[-a[1],a[0]]])] 
-    for k in range(1,n):
+    for k in range(1,m):
         h += [matrix([[-a[2*k],-a[2*k+1]],[-a[2*k+1],a[2*k]]])]
     return solvers.sdp(eta, Gs=G, hs=h)
     
-SDPsolve([0.,0.,1.,0.,0.5,math.sqrt(3.)/2],[1.,1.,1.])
+SDPsolve([[0.,0.],[1.,0.],[0.5,math.sqrt(3.)/2]],[1.,1.,1.])
