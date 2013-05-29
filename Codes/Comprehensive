@@ -1,4 +1,4 @@
-%python
+# Works in both Python and Sage
 
 import math
 import numpy
