@@ -7,3 +7,5 @@ Extra work:
 2. Graphics
 
 3. Simulations : number of iterations
+
+4. Check noncollinearity
