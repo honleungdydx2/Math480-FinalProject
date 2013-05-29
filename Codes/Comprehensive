@@ -1,0 +1,173 @@
+%python
+
+import math
+import numpy
+from cvxopt import matrix, solvers
+from timeit import Timer
+
+# Subroutines for Weiszfeld
+def dist(x,y):
+    return numpy.linalg.norm(x-numpy.array(y))
+    
+def beta(x,a,eta):
+    b = 0
+    for i in range(0,len(a)):
+        if dist(x,a[i]) > 0:
+            b += eta[i]/dist(x,a[i])
+    return 1/b
+    
+def Tilde_T(x,a,eta):
+    t = numpy.array([0]*len(a[0]))
+    for i in range(0,len(a)):
+        if dist(x,a[i]) > 0:
+            t = t + (eta[i]/dist(x,a[i]))*numpy.array(a[i])
+    return beta(x,a,eta)*t
+
+def eta_function(x,a,eta):
+    e = 0
+    for i in range(0,len(a)):
+        if dist(x,a[i]) == 0:
+           e = eta[i]
+    return e
+    
+def r(x,a,eta):
+    s = numpy.array([0]*len(a[0]))
+    for i in range(0,len(a)):
+        if dist(x,a[i])>0:
+            s = s + (eta[i]/dist(x,a[i]))*(numpy.array(a[i])-x)
+    return numpy.linalg.norm(s)
+
+def T(x,a,eta):
+    if eta_function(x,a,eta) == 0 and r(x,a,eta) == 0:
+        return Tilde_T(x,a,eta)
+    elif eta_function(x,a,eta) > r(x,a,eta) and r(x,a,eta) == 0:
+        return x
+    else:
+        return max([1- (eta_function(x,a,eta)/r(x,a,eta)),0.])*Tilde_T(x,a,eta) + \
+        min([1,eta_function(x,a,eta)/r(x,a,eta)])*x
+
+def weiszsolve(y,a,eta):
+    x = numpy.array(y)
+    count = 0
+    while (r(x,a,eta)>0 and r(x,a,eta)>eta_function(x,a,eta)) and count <= 100:
+        x = T(x,a,eta)
+        count += 1
+    L = [count]
+    L.append(sum([dist(x,a[i]) for i in range(0,len(a))]))
+    L.append(x.tolist())
+    return L
+    
+# Subroutines for SOCP
+
+def socpsolve(a,eta):
+    m = len(eta)
+    d = len(a[0])
+    for i in range(1,d+1):
+        eta.insert(0,0.)
+    eta = matrix(eta)
+    l = [0.]*(d-1)
+    l.insert(0,-1.)
+    l.insert(0,0.)
+    L = [l]
+    for i in range(1,d):
+        l = [0.]*(d-1)
+        l.insert(0,-1.)
+        l.insert(0,0.)
+        l[i],l[i+1] = l[i+1],l[i]
+        L.append(l)
+    p = [0.]*(d)
+    p.insert(0,-1.)
+    L.append(p)
+    for i in range(1,m):
+        L.append([0.]*(d+1))
+    G = [matrix(L)]
+    for i in range(d,d+m-1):
+        L[i],L[i+1] = L[i+1],L[i]
+        G += [matrix(L)]
+    a[0].insert(0,0.)
+    h = [matrix([j*(-1) for j in a[0]])]
+    for i in range(1,m):
+        a[i].insert(0,0.)
+        h += [matrix([j*(-1) for j in a[i]])]
+    sol = solvers.socp(eta, Gq = G, hq = h)
+    return sol
+
+# Subroutines for SDP
+
+def sdpsolve(b,eta):
+    a = []
+    m = len(b)
+    for i in range(0,m):
+        a.append(b[i][0])
+        a.append(b[i][1])
+    eta.insert(0,0.)
+    eta.insert(0,0.)
+    eta = matrix(eta)
+    L = [[-1.,0.,0.,1.],
+        [0.,-1.,-1.,0.],
+        [-1.,0.,0.,-1.],
+        [0.,0.,0.,0.]]
+    for i in range(1,m-1):
+        L.append([0.,0.,0.,0.])
+    G = [matrix(L)]
+    for j in range(2,m+1):
+        L[j], L[1+j] = L[1+j], L[j]
+        G += [matrix(L)]
+    h = [matrix([[-a[0],-a[1]],[-a[1],a[0]]])] 
+    for k in range(1,m):
+        h += [matrix([[-a[2*k],-a[2*k+1]],[-a[2*k+1],a[2*k]]])]
+    return solvers.sdp(eta, Gs=G, hs=h)
+        
+class FermatTorri(object):
+    def __init__(self, points, weights, method):
+        self.points = points
+        self.weights = weights
+        self.method = method
+        
+    def iterations(self):
+        if self.method == "weisz":
+            sol1 = weiszsolve(self.points[0],self.points,self.weights)
+            print sol1[0]
+        elif self.method == "socp":
+            sol2 = socpsolve(self.points,self.weights)
+            print(sol2['iterations'])
+        elif self.method == "sdp":
+            sol3 = sdpsolve(self.points,self.weights)
+            print(sol3['iterations'])
+    
+    def fermat_point(self):
+        if self.method == "weisz":
+            sol1 = weiszsolve(self.points[0],self.points,self.weights)
+            print sol1[2]
+        elif self.method == "socp":
+             sol2 = socpsolve(self.points,self.weights)
+             d = len(self.points[0])-1
+             print([sol2['x'][i] for i in range(0,d)])
+        elif self.method == "sdp":
+             sol3 = sdpsolve(self.points,self.weights)
+             print([sol3['x'][0],sol3['x'][1]])
+    
+    def min_dist(self):
+        if self.method == "weisz":
+            sol1 = weiszsolve(self.points[0],self.points,self.weights)
+            print sol1[1]
+        elif self.method == "socp":
+             sol2 = socpsolve(self.points,self.weights)
+             print(sol2['primal objective'])
+        elif self.method == "sdp":
+             sol3 = sdpsolve(self.points,self.weights)
+             print(sol3['primal objective'])
+    
+    def how_long(self):
+        if self.method == "weisz":
+            t1 = Timer(lambda:weiszsolve(self.points[0],self.points,self.weights))
+            print t1.timeit(number = 1)
+        elif self.method == "socp":
+             t2 = Timer(lambda:socpsolve(self.points,self.weights))
+             print t2.timeit(number = 1)
+        elif self.method == "sdp":
+             t3 = Timer(lambda:sdpsolve(self.points,self.weights))
+             print t3.timeit(number = 1)
+            
+A = FermatTorri([[0.,0.],[1.,0.],[0.5,math.sqrt(3.)/2]],[1.,1.,1.],"weisz")
+A.fermat_point()
