@@ -1,4 +1,6 @@
-# Works in both Python and Sage
+#SOCP only works in python
+
+%python
 
 import math
 import numpy
@@ -117,57 +119,69 @@ def sdpsolve(b,eta):
     for k in range(1,m):
         h += [matrix([[-a[2*k],-a[2*k+1]],[-a[2*k+1],a[2*k]]])]
     return solvers.sdp(eta, Gs=G, hs=h)
+    
+# Subroutine of plotting points
+
+def plotting(list):
+    print "The red point is the Fermat-Torricelli point!"
+    AA = point(list[0],size=50)
+    for i in range(1,len(list)-1):
+        AA += point(list[i],size=50)
+    AA += point(list[len(list)-1],size=80,rgbcolor = 'red')
+    for j in range(0,len(list)-1):
+        AA += line([list[j], list[len(list)-1]],rgbcolor = 'green')
+    AA.show()
+
+    
         
 class FermatTorri(object):
     def __init__(self, points, weights, method):
         self.points = points
         self.weights = weights
         self.method = method
+        if self.method == "weisz":
+            self.sol1 = weiszsolve(self.points[0],self.points,self.weights)
+        elif self.method == "socp":
+            self.sol2 = socpsolve(self.points,self.weights)
+        elif self.method == "sdp":    
+            self.sol3 = sdpsolve(self.points,self.weights)
+        
+    def check(self):
+        pass
         
     def iterations(self):
         if self.method == "weisz":
-            sol1 = weiszsolve(self.points[0],self.points,self.weights)
-            print sol1[0]
+            print self.sol1[0]
         elif self.method == "socp":
-            sol2 = socpsolve(self.points,self.weights)
-            print(sol2['iterations'])
+            print(self.sol2['iterations'])
         elif self.method == "sdp":
-            sol3 = sdpsolve(self.points,self.weights)
-            print(sol3['iterations'])
+            print(self.sol3['iterations'])
     
     def fermat_point(self):
         if self.method == "weisz":
-            sol1 = weiszsolve(self.points[0],self.points,self.weights)
-            print sol1[2]
+            print self.sol1[2]
         elif self.method == "socp":
-             sol2 = socpsolve(self.points,self.weights)
              d = len(self.points[0])-1
-             print([sol2['x'][i] for i in range(0,d)])
+             print([self.sol2['x'][i] for i in range(0,d)])
         elif self.method == "sdp":
-             sol3 = sdpsolve(self.points,self.weights)
-             print([sol3['x'][0],sol3['x'][1]])
+             print([self.sol3['x'][0],self.sol3['x'][1]])
     
     def min_dist(self):
         if self.method == "weisz":
-            sol1 = weiszsolve(self.points[0],self.points,self.weights)
-            print sol1[1]
+            print self.sol1[1]
         elif self.method == "socp":
-             sol2 = socpsolve(self.points,self.weights)
-             print(sol2['primal objective'])
+             print(self.sol2['primal objective'])
         elif self.method == "sdp":
-             sol3 = sdpsolve(self.points,self.weights)
-             print(sol3['primal objective'])
-    
-    def how_long(self):
-        if self.method == "weisz":
-            t1 = Timer(lambda:weiszsolve(self.points[0],self.points,self.weights))
-            print t1.timeit(number = 1)
-        elif self.method == "socp":
-             t2 = Timer(lambda:socpsolve(self.points,self.weights))
-             print t2.timeit(number = 1)
-        elif self.method == "sdp":
-             t3 = Timer(lambda:sdpsolve(self.points,self.weights))
-             print t3.timeit(number = 1)
-            
-A = FermatTorri([[0.,0.],[1.,0.],[0.5,math.sqrt(3.)/2]],[1.,1.,1.],"weisz")
+             print(self.sol3['primal objective'])   
+             
+def showpoint(points, weights):
+    sol4 = weiszsolve(points[0],points,weights)
+    points.append(sol4[2])
+    plotting(points) 
+          
+               
+A = FermatTorri([[0.,0.],[1.,0.],[0.5,math.sqrt(3.)/2]],[1.,1.,1.],"socp")
 A.fermat_point()
+A.min_dist()
+A.iterations()
+showpoint([[0.,0.],[0.05,0.],[0.5,math.sqrt(3.)/2],[1.,4.]],[1.,1.,1.,3.])
