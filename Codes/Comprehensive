@@ -152,9 +152,14 @@ class FermatTorri(object):
                 self.weights.remove(0)
         
     def data(self):
-        print self.points
-        print self.weights
-        print self.method
+        if self.method == "weisz":
+            print "Weiszfeld algorithm"
+        elif self.method == "socp":
+            print "SOCP"
+        elif self.method == "sdp": 
+            print "SDP"   
+        print "The " + str(len(self.points)) + " points are: " + str(self.points)
+        print "The " + str(len(self.weights)) + " weights are: " + str(self.weights)
         
     def iterations(self):
         if self.method == "weisz":
