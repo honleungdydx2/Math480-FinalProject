@@ -122,7 +122,8 @@ def sdpsolve(b,eta):
 # Subroutine of plotting points
 
 def plotting(list):
-    print "The red point is the Fermat-Torricelli point!"
+    print "Blue points are given."
+    print "The red point is the Fermat-Torricelli point."
     AA = point(list[0],size=50)
     for i in range(1,len(list)-1):
         AA += point(list[i],size=50)
@@ -150,16 +151,18 @@ class FermatTorri(object):
             self.sol3 = sdpsolve(self.points,self.weights)
             for j in range(0,len(self.points[0])):
                 self.weights.remove(0)
+        else: print "Unavailable method!"
         
     def data(self):
         if self.method == "weisz":
-            print "Weiszfeld algorithm"
+            print "Modified Weiszfeld algorithm"
         elif self.method == "socp":
             print "SOCP"
         elif self.method == "sdp": 
             print "SDP"   
         print "The " + str(len(self.points)) + " points are: " + str(self.points)
         print "The " + str(len(self.weights)) + " weights are: " + str(self.weights)
+
         
     def iterations(self):
         if self.method == "weisz":
@@ -189,32 +192,35 @@ class FermatTorri(object):
     def how_long(self):
         if self.method == "weisz":
             t1 = Timer(lambda:self.sol1)
-            return t1.timeit(number = 10000)
+            return t1.timeit(number = 10000000)
         elif self.method == "socp":
              t2 = Timer(lambda:self.sol2)
-             return t2.timeit(number = 10000)
+             return t2.timeit(number = 10000000)
         elif self.method == "sdp":
              t3 = Timer(lambda:self.sol3)
-             return t3.timeit(number = 10000)  
-             
-def showpoint(points, weights):
-    sol4 = weiszsolve(points[0],points,weights)
-    points.append(sol4[2])
-    plotting(points) 
-          
+             return t3.timeit(number = 10000000)  
+    
+    def image(self):
+        if self.method == "weisz":
+            p = self.sol1[2]
+        elif self.method == "socp":
+            p = [self.sol2['x'][i] for i in range(0,d)]
+        elif self.method == "sdp":
+            p = [self.sol3['x'][0],self.sol3['x'][1]]
+        self.points.append(p)
+        plotting(self.points)
+        self.points.remove(p)
                
-A = FermatTorri([[0.,0.],[1.,0.],[0.5,math.sqrt(3.)/2]],[1.,1.,1.],"weisz")
+A = FermatTorri([[0.,0.],[1.,0.],[0.5,math.sqrt(3.)/2]],[1.5,1.,1.],"weisz")
 A.fermat_point()
 A.data()
 A.iterations()
 A.how_long()
-showpoint([[0.,0.],[0.05,0.],[0.5,math.sqrt(3.)/2],[1.,4.]],[1.,1.,1.,3.])
-showpoint([[0.,0.],[0.,1.],[0.,2.],[0.,3.]],[1.,1.,1.,3.])
+A.image()
+A.data()
 
----------------------------------
+------------------------------
 
-
-import random
 def gen_points(n, d, mu, sigma):
     points = []
     for i in range(0, n):
@@ -255,4 +261,4 @@ def test_algorithm(n,m,mu,sigma):
     print "SDP median number of iterations: " + str(numpy.median(numpy.array(iteration_list3)))
     print "SDP median time: " + str(numpy.median(numpy.array(time_list3)))
     
-test_algorithm(10,4,0,5)
+test_algorithm(1,4,0,5)
