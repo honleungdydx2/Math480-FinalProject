@@ -132,8 +132,6 @@ def plotting(list):
         AA += line([list[j], list[len(list)-1]],rgbcolor = 'green')
     AA.show()
 
-    
-        
 class FermatTorri(object):
     def __init__(self, points, weights, method):
         self.points = points
@@ -143,11 +141,19 @@ class FermatTorri(object):
             self.sol1 = weiszsolve(self.points[0],self.points,self.weights)
         elif self.method == "socp":
             self.sol2 = socpsolve(self.points,self.weights)
+            for i in self.points:
+                i.remove(0)
+            for j in range(0,len(self.points[0])):
+                self.weights.remove(0)
         elif self.method == "sdp":    
             self.sol3 = sdpsolve(self.points,self.weights)
+            for j in range(0,len(self.points[0])):
+                self.weights.remove(0)
         
-    def check(self):
-        pass
+    def data(self):
+        print self.points
+        print self.weights
+        print self.method
         
     def iterations(self):
         if self.method == "weisz":
@@ -172,7 +178,7 @@ class FermatTorri(object):
         elif self.method == "socp":
              print(self.sol2['primal objective'])
         elif self.method == "sdp":
-             print(self.sol3['primal objective'])   
+             print(self.sol3['primal objective']) 
              
 def showpoint(points, weights):
     sol4 = weiszsolve(points[0],points,weights)
@@ -183,5 +189,6 @@ def showpoint(points, weights):
 A = FermatTorri([[0.,0.],[1.,0.],[0.5,math.sqrt(3.)/2]],[1.,1.,1.],"socp")
 A.fermat_point()
 A.min_dist()
+A.data()
 A.iterations()
 showpoint([[0.,0.],[0.05,0.],[0.5,math.sqrt(3.)/2],[1.,4.]],[1.,1.,1.,3.])
